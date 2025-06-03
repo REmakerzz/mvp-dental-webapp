@@ -49,6 +49,8 @@ function App() {
   const [smsSent, setSmsSent] = React.useState(false);
   const [smsCode, setSmsCode] = React.useState('');
   const [smsError, setSmsError] = React.useState('');
+  const [showCodeInput, setShowCodeInput] = React.useState(false);
+  const [generatedCode, setGeneratedCode] = React.useState('');
 
   // Получение пользователя из Telegram WebApp API
   React.useEffect(() => {
@@ -58,12 +60,17 @@ function App() {
       const webapp = window.Telegram.WebApp;
       webapp.ready();
       webapp.expand();
-      
+      // Логируем все данные Telegram WebApp
+      console.log('Telegram WebApp:', webapp);
+      console.log('initDataUnsafe:', webapp.initDataUnsafe);
       // @ts-ignore
       const user = webapp.initDataUnsafe?.user;
+      console.log('Telegram user:', user);
       if (user) {
         setTgUser(user);
       }
+    } else {
+      console.log('Telegram WebApp не найден!');
     }
   }, []);
 
@@ -165,28 +172,40 @@ function App() {
   }
 
   // Отправка SMS
-  const handleSendSMS = async () => {
-    if (!validatePhone(phone)) {
-      setPhoneError('Введите корректный номер телефона');
-      return;
-    }
-    setPhoneError('');
-    setLoading(true);
+  const handleGetCode = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/send_sms`, {
+      console.log('Telegram WebApp:', window.Telegram.WebApp);
+      console.log('User:', window.Telegram.WebApp.initDataUnsafe?.user);
+      
+      if (!window.Telegram.WebApp.initDataUnsafe?.user?.id) {
+        setError('Ошибка: приложение должно быть открыто через Telegram');
+        return;
+      }
+
+      const response = await fetch('https://mvp-dental-backend.onrender.com/api/send_sms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          phone: formatPhoneForServer(phone),
-          telegram_id: tgUser?.id
-        })
+          phone: phone,
+          telegram_id: window.Telegram.WebApp.initDataUnsafe.user.id
+        }),
       });
-      if (!response.ok) throw new Error('Ошибка отправки SMS');
-      setSmsSent(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка отправки SMS');
-    } finally {
-      setLoading(false);
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setShowCodeInput(true);
+        setGeneratedCode(data.code);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Ошибка при отправке кода');
     }
   };
 
@@ -382,6 +401,11 @@ function App() {
             {selectedService.name} · {selectedService.duration} мин · {selectedService.price} ₽<br/>
             {selectedDate.toLocaleDateString('ru-RU')} · {selectedTime}
           </Typography>
+          {error && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {error}
+            </Typography>
+          )}
           {!smsSent ? (
             <Box mt={3}>
               <TextField
@@ -407,7 +431,7 @@ function App() {
                 color="primary"
                 size="large"
                 sx={{ borderRadius: 3 }}
-                onClick={handleSendSMS}
+                onClick={handleGetCode}
               >
                 Получить код
               </Button>
