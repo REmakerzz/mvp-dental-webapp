@@ -188,7 +188,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          phone: phone,
+          phone: formatPhoneForServer(phone),
           telegram_id: window.Telegram.WebApp.initDataUnsafe.user.id
         }),
       });
