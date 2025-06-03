@@ -6,6 +6,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ru } from 'date-fns/locale';
 import { isSameDay, addDays, startOfToday } from 'date-fns';
 import TextField from '@mui/material/TextField';
+import { API_URL } from './config';
 
 const theme = createTheme({
   palette: {
@@ -71,7 +72,7 @@ function App() {
     if (step === 'service') {
       setLoading(true);
       setError(null);
-      fetch('http://localhost:8080/api/services')
+      fetch(`${API_URL}/api/services`)
         .then((res) => {
           if (!res.ok) throw new Error('Ошибка загрузки услуг');
           return res.json();
@@ -162,6 +163,68 @@ function App() {
     const digits = normalizePhone(phone);
     return digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'));
   }
+
+  // Отправка SMS
+  const handleSendSMS = async () => {
+    if (!validatePhone(phone)) {
+      setPhoneError('Введите корректный номер телефона');
+      return;
+    }
+    setPhoneError('');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/send_sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: formatPhoneForServer(phone),
+          telegram_id: tgUser?.id
+        })
+      });
+      if (!response.ok) throw new Error('Ошибка отправки SMS');
+      setSmsSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка отправки SMS');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Подтверждение записи
+  const handleConfirmBooking = async () => {
+    if (!validatePhone(phone)) {
+      setPhoneError('Введите корректный номер телефона');
+      return;
+    }
+    if (!smsCode) {
+      setSmsError('Введите код из SMS');
+      return;
+    }
+    setPhoneError('');
+    setSmsError('');
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: formatPhoneForServer(phone),
+          telegram_id: tgUser?.id,
+          name: tgUser?.first_name,
+          service_id: selectedService.id,
+          date: selectedDate?.toISOString().split('T')[0],
+          time: selectedTime,
+          code: smsCode
+        })
+      });
+      if (!response.ok) throw new Error('Ошибка создания записи');
+      setStep('success');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка создания записи');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- UI шаги ---
   if (step === 'main') {
@@ -344,43 +407,7 @@ function App() {
                 color="primary"
                 size="large"
                 sx={{ borderRadius: 3 }}
-                onClick={async () => {
-                  const formattedPhone = formatPhoneForServer(phone);
-                  console.log('Final formatted phone:', formattedPhone);
-                  
-                  if (!formattedPhone) {
-                    setPhoneError('Введите корректный номер телефона');
-                    return;
-                  }
-                  
-                  setPhoneError('');
-                  try {
-                    const requestBody = { 
-                      phone: formattedPhone,
-                      telegram_id: tgUser?.id || 123456789 // Временный ID для тестирования
-                    };
-                    console.log('Sending request with body:', requestBody);
-                    
-                    const res = await fetch('http://localhost:8080/api/send_sms', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(requestBody)
-                    });
-                    
-                    const data = await res.json();
-                    console.log('Server response:', data);
-                    
-                    if (!data.ok) {
-                      throw new Error(data.error || 'Ошибка отправки SMS');
-                    }
-                    
-                    setSmsSent(true);
-                    setSmsCode(data.code || '');
-                  } catch (e: any) {
-                    console.error('Error details:', e);
-                    setPhoneError(e.message || 'Ошибка отправки SMS');
-                  }
-                }}
+                onClick={handleSendSMS}
               >
                 Получить код
               </Button>
@@ -402,36 +429,7 @@ function App() {
                 size="large"
                 sx={{ borderRadius: 3 }}
                 disabled={smsCode.length !== 4}
-                onClick={async () => {
-                  setSmsError('');
-                  try {
-                    if (!selectedService?.ID) {
-                      throw new Error('Не выбрана услуга');
-                    }
-                    
-                    const requestBody = {
-                      phone: formatPhoneForServer(phone),
-                      telegram_id: tgUser?.id || 123456789,
-                      name: tgUser?.first_name || 'Гость',
-                      service_id: selectedService.ID,
-                      date: selectedDate.toISOString().slice(0, 10),
-                      time: selectedTime,
-                      code: smsCode
-                    };
-                    
-                    const res = await fetch('http://localhost:8080/api/bookings', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(requestBody)
-                    });
-                    
-                    const data = await res.json();
-                    if (!data.ok) throw new Error(data.error || 'Ошибка подтверждения');
-                    setStep('success');
-                  } catch (e: any) {
-                    setSmsError(e.message || 'Ошибка подтверждения');
-                  }
-                }}
+                onClick={handleConfirmBooking}
               >
                 Подтвердить запись
               </Button>
