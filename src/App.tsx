@@ -183,12 +183,17 @@ function App() {
 
   // Отправка SMS
   const handleGetCode = async () => {
+    setError(null);
+    setSmsError('');
+    setSmsCode('');
+    setLoading(true);
     try {
       console.log('Telegram WebApp:', window.Telegram.WebApp);
       console.log('User:', window.Telegram.WebApp.initDataUnsafe?.user);
-      
+
       if (!window.Telegram.WebApp.initDataUnsafe?.user?.id) {
         setError('Ошибка: приложение должно быть открыто через Telegram');
+        setLoading(false);
         return;
       }
 
@@ -210,12 +215,24 @@ function App() {
       if (data.error) {
         setError(data.error);
       } else {
-        setShowCodeInput(true);
+        setSmsSent(true);
         setGeneratedCode(data.code);
+        // Автофокус на поле кода
+        setTimeout(() => {
+          const inputs = document.querySelectorAll('input');
+          for (const input of inputs) {
+            if (input.labels && Array.from(input.labels).some(l => l.textContent?.includes('Код из SMS'))) {
+              input.focus();
+              break;
+            }
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Error:', error);
       setError('Ошибка при отправке кода');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -240,7 +257,7 @@ function App() {
           phone: formatPhoneForServer(phone),
           telegram_id: tgUser?.id,
           name: tgUser?.first_name,
-          service_id: selectedService.id,
+          service_id: selectedService.ID,
           date: selectedDate?.toISOString().split('T')[0],
           time: selectedTime,
           code: smsCode
@@ -310,6 +327,7 @@ function App() {
                 color="primary"
                 sx={{ justifyContent: 'flex-start', textAlign: 'left', borderRadius: 3, p: 2 }}
                 onClick={() => {
+                  console.log('Выбрана услуга:', s);
                   setSelectedService(s);
                   setSelectedDate(null);
                   setSelectedTime(null);
@@ -442,6 +460,7 @@ function App() {
                 size="large"
                 sx={{ borderRadius: 3 }}
                 onClick={handleGetCode}
+                disabled={loading}
               >
                 Получить код
               </Button>
