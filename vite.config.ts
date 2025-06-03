@@ -9,8 +9,18 @@ export default defineConfig({
       name: 'fix-asset-paths',
       transformIndexHtml(html) {
         // Автоматически исправляем абсолютные пути на относительные
-        return html.replace(/href="\/assets\//g, 'href="assets/')
-                  .replace(/src="\/assets\//g, 'src="assets/');
+        const fixedHtml = html
+          .replace(/href="\/assets\//g, 'href="assets/')
+          .replace(/src="\/assets\//g, 'src="assets/')
+          .replace(/href="\/\//g, 'href="//')  // Сохраняем внешние URL
+          .replace(/src="\/\//g, 'src="//');   // Сохраняем внешние URL
+        
+        // Проверяем, были ли исправления
+        if (html !== fixedHtml) {
+          console.log('⚠️  Исправлены абсолютные пути в index.html на относительные');
+        }
+        
+        return fixedHtml;
       },
     },
   ],
