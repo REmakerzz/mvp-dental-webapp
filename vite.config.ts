@@ -4,5 +4,5 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Это важно для GitHub Pages
+  base: '/mvp-dental-webapp/', // Путь к репозиторию на GitHub Pages
 }) 
