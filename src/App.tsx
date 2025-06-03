@@ -51,6 +51,7 @@ function App() {
   const [smsError, setSmsError] = React.useState('');
   const [showCodeInput, setShowCodeInput] = React.useState(false);
   const [generatedCode, setGeneratedCode] = React.useState('');
+  const [availableDates, setAvailableDates] = React.useState<string[]>([]);
 
   // Получение пользователя из Telegram WebApp API
   React.useEffect(() => {
@@ -106,20 +107,15 @@ function App() {
     }
   }, [step]);
 
-  // Календарь (заглушка)
-  const today = startOfToday();
-  const availableDays = React.useMemo(() => {
-    // Массив: {date: Date, status: 'free' | 'busy' | 'disabled'}
-    return Array.from({ length: 14 }).map((_, i) => {
-      const date = addDays(today, i);
-      // Случайная генерация доступности (для демо)
-      const rnd = Math.random();
-      let status: 'free' | 'busy' | 'disabled' = 'free';
-      if (rnd < 0.2) status = 'busy';
-      if (rnd < 0.05) status = 'disabled';
-      return { date, status };
-    });
-  }, [today]);
+  // Загрузка доступных дат из API
+  React.useEffect(() => {
+    if (step === 'date') {
+      fetch(`${API_URL}/api/available_dates`)
+        .then(res => res.json())
+        .then(data => setAvailableDates(data))
+        .catch(() => setAvailableDates([]));
+    }
+  }, [step]);
 
   // Генерация слотов времени (заглушка)
   const timeSlots = React.useMemo(() => {
@@ -136,19 +132,15 @@ function App() {
     return slots;
   }, [selectedDate, selectedService]);
 
+  // Календарь: подсвечиваем только доступные даты
   function renderDay(day: Date, value: Date | null, DayComponentProps: any) {
-    const found = availableDays.find((d) => isSameDay(d.date, day));
-    let color: string | undefined = undefined;
-    if (found) {
-      if (found.status === 'free') color = '#43a047';
-      if (found.status === 'busy') color = '#e53935';
-      if (found.status === 'disabled') color = '#bdbdbd';
-    }
+    const dateStr = day.toISOString().split('T')[0];
+    const isAvailable = availableDates.includes(dateStr);
     return (
       <PickersDay
         {...DayComponentProps}
-        sx={color ? { bgcolor: color, color: '#fff', '&:hover': { bgcolor: color } } : {}}
-        disabled={found?.status === 'disabled'}
+        sx={isAvailable ? { bgcolor: '#43a047', color: '#fff', '&:hover': { bgcolor: '#43a047' } } : {}}
+        disabled={!isAvailable}
       />
     );
   }
@@ -356,7 +348,7 @@ function App() {
           <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <Typography variant="h5" gutterBottom>Выберите дату</Typography>
             <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              {selectedService.name} · {selectedService.duration} мин · {selectedService.price} ₽
+              {selectedService.Name} · {selectedService.Duration} мин · {selectedService.Price} ₽
             </Typography>
             <Box mt={4}>
               <DatePicker
@@ -394,7 +386,7 @@ function App() {
         <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Typography variant="h5" gutterBottom>Выберите время</Typography>
           <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            {selectedService.name} · {selectedService.duration} мин · {selectedService.price} ₽<br/>
+            {selectedService.Name} · {selectedService.Duration} мин · {selectedService.Price} ₽<br/>
             {selectedDate.toLocaleDateString('ru-RU')}
           </Typography>
           <Box mt={3} display="flex" flexWrap="wrap" gap={2}>
@@ -426,7 +418,7 @@ function App() {
         <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Typography variant="h5" gutterBottom>Подтверждение записи</Typography>
           <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-            {selectedService.name} · {selectedService.duration} мин · {selectedService.price} ₽<br/>
+            {selectedService.Name} · {selectedService.Duration} мин · {selectedService.Price} ₽<br/>
             {selectedDate.toLocaleDateString('ru-RU')} · {selectedTime}
           </Typography>
           {error && (
