@@ -54,24 +54,34 @@ function App() {
 
   // Получение пользователя из Telegram WebApp API
   React.useEffect(() => {
-    // @ts-ignore
-    if (window.Telegram && window.Telegram.WebApp) {
+    const initTelegramWebApp = () => {
       // @ts-ignore
-      const webapp = window.Telegram.WebApp;
-      webapp.ready();
-      webapp.expand();
-      // Логируем все данные Telegram WebApp
-      console.log('Telegram WebApp:', webapp);
-      console.log('initDataUnsafe:', webapp.initDataUnsafe);
-      // @ts-ignore
-      const user = webapp.initDataUnsafe?.user;
-      console.log('Telegram user:', user);
-      if (user) {
-        setTgUser(user);
+      if (window.Telegram && window.Telegram.WebApp) {
+        // @ts-ignore
+        const webapp = window.Telegram.WebApp;
+        webapp.ready();
+        webapp.expand();
+        
+        // Логируем все данные Telegram WebApp
+        console.log('Telegram WebApp:', webapp);
+        console.log('initDataUnsafe:', webapp.initDataUnsafe);
+        
+        // @ts-ignore
+        const user = webapp.initDataUnsafe?.user;
+        console.log('Telegram user:', user);
+        
+        if (user) {
+          setTgUser(user);
+        } else {
+          console.log('Telegram user not found in initDataUnsafe');
+        }
+      } else {
+        console.log('Telegram WebApp not found, retrying in 1s...');
+        setTimeout(initTelegramWebApp, 1000);
       }
-    } else {
-      console.log('Telegram WebApp не найден!');
-    }
+    };
+    
+    initTelegramWebApp();
   }, []);
 
   // Загрузка услуг
