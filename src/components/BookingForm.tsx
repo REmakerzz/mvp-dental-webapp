@@ -100,8 +100,8 @@ const BookingForm: React.FC = () => {
       const dateStr = date.toISOString().split('T')[0];
       const dateInfo = dates.find(d => d.date === dateStr);
       if (dateInfo && dateInfo.isActive) {
-        setSelectedDate(date);
-        setStep('time');
+    setSelectedDate(date);
+    setStep('time');
       }
     }
   };
@@ -184,12 +184,12 @@ const BookingForm: React.FC = () => {
   };
 
   if (step === 'service') {
-    return (
+  return (
       <ThemeProvider theme={theme}>
         <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <Typography variant="h5" gutterBottom>Выберите услугу</Typography>
           <Box mt={3} display="flex" flexDirection="column" gap={2}>
-            {services.map(service => (
+          {services.map(service => (
               <Button
                 key={service.id}
                 variant="outlined"
@@ -204,7 +204,7 @@ const BookingForm: React.FC = () => {
                   </Typography>
                 </Box>
               </Button>
-            ))}
+          ))}
           </Box>
         </Container>
       </ThemeProvider>
@@ -257,7 +257,7 @@ const BookingForm: React.FC = () => {
               >
                 {slot.time}
               </Button>
-            ))}
+          ))}
           </Box>
         </Container>
       </ThemeProvider>
@@ -311,7 +311,7 @@ const BookingForm: React.FC = () => {
           </Box>
         </Container>
       </ThemeProvider>
-    );
+  );
   }
 
   return null;
